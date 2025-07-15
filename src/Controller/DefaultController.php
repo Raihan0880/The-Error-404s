@@ -9,16 +9,19 @@ use Symfony\Component\HttpFoundation\Response;
 use Twig\Environment; // Don't forget to import the Twig\Environment class.
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\ChatMessage;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class DefaultController extends AbstractController
 {
     private $loader;
     private EntityManagerInterface $em;
+    private $httpClient;
 
-    public function __construct(Environment $twig, EntityManagerInterface $em)
+    public function __construct(Environment $twig, EntityManagerInterface $em, HttpClientInterface $httpClient)
     {
         $this->loader = $twig->getLoader();
         $this->em = $em;
+        $this->httpClient = $httpClient;
     }
 
     #[Route('/', name: 'home')]
@@ -57,78 +60,33 @@ class DefaultController extends AbstractController
     #[Route('/api/plant', name: 'api_plant', methods: ['POST'])]
     public function plant(\Symfony\Component\HttpFoundation\Request $request): JsonResponse
     {
-        $plantnetApiKey = $_ENV['PLANTNET_API_KEY'] ?? 'YOUR_PLANTNET_API_KEY';
-        $groqApiKey = $_ENV['GROQ_API_KEY'] ?? 'YOUR_GROQ_API_KEY';
         $file = $request->files->get('image');
         if (!$file) {
-            return $this->json(['error' => 'Image is required.'], 400);
+            return $this->json(['error' => 'No image uploaded.'], 400);
         }
 
-        // 1. Identify plant with Pl@ntNet
-        $ch = curl_init("https://my-api.plantnet.org/v2/identify/all?api-key=$plantnetApiKey");
-        $cfile = new \CURLFile($file->getPathname(), $file->getMimeType(), $file->getClientOriginalName());
-        $post = ['images' => $cfile, 'organs' => 'auto'];
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
-        $result = curl_exec($ch);
-        curl_close($ch);
-        $data = json_decode($result, true);
-
-        if (!isset($data['results'][0])) {
-            return $this->json(['error' => 'Could not identify plant.'], 500);
+        $supported = ['image/jpeg', 'image/png'];
+        $mimeType = $file->getMimeType();
+        if (!in_array($mimeType, $supported)) {
+            return $this->json([
+                'error' => 'Unsupported image format. Please upload a JPEG or PNG image.'
+            ], 400);
         }
 
-        $plant = $data['results'][0]['species']['scientificNameWithoutAuthor'] ?? 'Unknown';
-        $score = $data['results'][0]['score'] ?? null;
-        $commonName = $data['results'][0]['species']['commonNames'][0] ?? '';
-
-        // 2. Ask Groq for disease diagnosis and advice
-        $imageBase64 = base64_encode(file_get_contents($file->getPathname()));
-        $prompt = "This is a photo of a plant identified as '$plant' ($commonName). Based on the image (base64-encoded below), what disease or problem might this plant have? Give a diagnosis and practical advice for the farmer. If the plant looks healthy, say so. (Image base64: $imageBase64)";
-
-        $groqPayload = [
-            'model' => 'llama3-70b-8192',
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are an expert plant pathologist and farming assistant.'],
-                ['role' => 'user', 'content' => $prompt]
-            ],
-            'max_tokens' => 300,
-            'temperature' => 0.7,
-        ];
-
-        $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Content-Type: application/json",
-            "Authorization: Bearer $groqApiKey"
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($groqPayload));
-        $groqResult = curl_exec($ch);
-        curl_close($ch);
-
-        $groqData = json_decode($groqResult, true);
-        $diagnosis = $groqData['choices'][0]['message']['content'] ?? 'No diagnosis available.';
-
-        // Save plant identification to DB
-        $chatMsg = new ChatMessage();
-        $chatMsg->setRole('user');
-        $chatMsg->setContent('Uploaded plant image');
-        $chatMsg->setCreatedAt(new \DateTimeImmutable());
-        $chatMsg->setImagePath($file->getClientOriginalName());
-        $chatMsg->setPlantName($plant);
-        $chatMsg->setCommonName($commonName);
-        $chatMsg->setConfidence($score);
-        $chatMsg->setDiagnosis($diagnosis);
-        $this->em->persist($chatMsg);
-        $this->em->flush();
-
-        return $this->json([
-            'plant' => $plant,
-            'confidence' => $score,
-            'common_name' => $commonName,
-            'diagnosis' => $diagnosis
-        ]);
+        $srcPath = $file->getPathname();
+        try {
+            $response = $this->httpClient->request('POST', 'http://127.0.0.1:5000/analyze', [
+                'body' => [
+                    'file' => fopen($srcPath, 'r')
+                ]
+            ]);
+            $data = $response->toArray();
+            return $this->json($data);
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => 'Failed to analyze image with TensorFlow service: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     #[Route('/api/empathy', name: 'api_empathy', methods: ['POST'])]
@@ -138,7 +96,7 @@ class DefaultController extends AbstractController
         $data = json_decode($this->getRequestContent(), true);
         $history = $data['history'] ?? null;
         if (!$history || !is_array($history) || count($history) === 0) {
-            $message = $data['message'] ?? '';
+        $message = $data['message'] ?? '';
             $history = [
                 ['role' => 'system', 'content' => 'You are an empathetic farming assistant. Reply in short, clear sentences. Give practical, step-by-step solutions. Be friendly and concise.'],
                 ['role' => 'user', 'content' => $message]
