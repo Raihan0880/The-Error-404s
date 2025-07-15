@@ -210,32 +210,11 @@ chatForm.addEventListener('submit', async (e) => {
   if (message) {
     chatHistory.push({ role: 'user', content: message });
   }
-  input.value = '';
-  imageInput.value = '';
 
   chatLoading.classList.remove('hidden');
 
   try {
-    if (!regionAsked) {
-      // First message: treat as region
-      const region = message;
-      const res = await fetch('/api/weather', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ region })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      userRegion = region;
-      weatherInfo.textContent = `${data.weather}, ${data.temperature}°C, ${data.description}`;
-      const aiMsg = document.createElement('div');
-      aiMsg.className = 'text-left text-green-700 my-1';
-      aiMsg.textContent = `Thanks! The weather in ${region} is ${data.weather}, ${data.temperature}°C. How can I help with your plants today?`;
-      chatWindow.appendChild(aiMsg);
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-      regionAsked = true;
-      sendAnalytics('region_set', { region });
-    } else if (hasImage) {
+    if (hasImage) {
       // Image upload: plant identification
       const formData = new FormData();
       formData.append('image', imageInput.files[0]);
@@ -248,13 +227,17 @@ chatForm.addEventListener('submit', async (e) => {
         chatWindow.appendChild(imgPreview);
         chatWindow.scrollTop = chatWindow.scrollHeight;
       }
+      // Only clear after preview
       input.value = '';
       imageInput.value = '';
+
       const res = await fetch('/api/plant', {
         method: 'POST',
         body: formData
       });
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
       const aiMsg = document.createElement('div');
       aiMsg.className = 'text-left text-green-700 my-1';
       aiMsg.innerHTML = `
@@ -267,23 +250,25 @@ chatForm.addEventListener('submit', async (e) => {
       sendAnalytics('plant_identification', { plant: data.plant, confidence: data.confidence });
       // Add plant diagnosis to chat history for context
       chatHistory.push({ role: 'assistant', content: `Plant identified: ${data.plant} (${data.common_name}). Diagnosis & Advice: ${data.diagnosis}` });
-    } else if (message) {
-      // Text message: empathy API with chat history
-      const res = await fetch('/api/empathy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ history: chatHistory })
-      });
-      const data = await res.json();
-      const aiMsg = document.createElement('div');
-      aiMsg.className = 'text-left text-green-700 my-1';
-      aiMsg.textContent = data.empathetic_response;
-      chatWindow.appendChild(aiMsg);
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-      // Add AI reply to chat history
-      chatHistory.push({ role: 'assistant', content: data.empathetic_response });
-      sendAnalytics('user_message', { message });
+      return; // Don't process as text if image was uploaded
     }
+
+    // Text message: empathy API with chat history
+    const res = await fetch('/api/empathy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history: chatHistory })
+    });
+    const data = await res.json();
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'text-left text-green-700 my-1';
+    aiMsg.textContent = data.empathetic_response;
+    chatWindow.appendChild(aiMsg);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+    // Add AI reply to chat history
+    chatHistory.push({ role: 'assistant', content: data.empathetic_response });
+    sendAnalytics('user_message', { message });
+
   } catch (err) {
     chatError.textContent = err.message || 'An error occurred.';
     chatError.classList.remove('hidden');

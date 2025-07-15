@@ -7,14 +7,18 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Twig\Environment; // Don't forget to import the Twig\Environment class.
+use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\ChatMessage;
 
 class DefaultController extends AbstractController
 {
     private $loader;
+    private EntityManagerInterface $em;
 
-    public function __construct(Environment $twig)
+    public function __construct(Environment $twig, EntityManagerInterface $em)
     {
         $this->loader = $twig->getLoader();
+        $this->em = $em;
     }
 
     #[Route('/', name: 'home')]
@@ -76,7 +80,7 @@ class DefaultController extends AbstractController
         }
 
         $plant = $data['results'][0]['species']['scientificNameWithoutAuthor'] ?? 'Unknown';
-        $score = $data['results'][0]['score'] ?? 0;
+        $score = $data['results'][0]['score'] ?? null;
         $commonName = $data['results'][0]['species']['commonNames'][0] ?? '';
 
         // 2. Ask Groq for disease diagnosis and advice
@@ -105,6 +109,19 @@ class DefaultController extends AbstractController
 
         $groqData = json_decode($groqResult, true);
         $diagnosis = $groqData['choices'][0]['message']['content'] ?? 'No diagnosis available.';
+
+        // Save plant identification to DB
+        $chatMsg = new ChatMessage();
+        $chatMsg->setRole('user');
+        $chatMsg->setContent('Uploaded plant image');
+        $chatMsg->setCreatedAt(new \DateTimeImmutable());
+        $chatMsg->setImagePath($file->getClientOriginalName());
+        $chatMsg->setPlantName($plant);
+        $chatMsg->setCommonName($commonName);
+        $chatMsg->setConfidence($score);
+        $chatMsg->setDiagnosis($diagnosis);
+        $this->em->persist($chatMsg);
+        $this->em->flush();
 
         return $this->json([
             'plant' => $plant,
@@ -143,9 +160,26 @@ class DefaultController extends AbstractController
         $result = curl_exec($ch);
         curl_close($ch);
         $data = json_decode($result, true);
-        if (isset($data['choices'][0]['message']['content'])) {
+        $aiResponse = $data['choices'][0]['message']['content'] ?? null;
+        // Save user and AI messages to DB
+        if ($history && count($history) > 1) {
+            $userMsg = new ChatMessage();
+            $userMsg->setRole('user');
+            $userMsg->setContent($history[count($history)-1]['content'] ?? '');
+            $userMsg->setCreatedAt(new \DateTimeImmutable());
+            $this->em->persist($userMsg);
+        }
+        if ($aiResponse) {
+            $aiMsg = new ChatMessage();
+            $aiMsg->setRole('assistant');
+            $aiMsg->setContent($aiResponse);
+            $aiMsg->setCreatedAt(new \DateTimeImmutable());
+            $this->em->persist($aiMsg);
+        }
+        $this->em->flush();
+        if ($aiResponse) {
             return $this->json([
-                'empathetic_response' => $data['choices'][0]['message']['content']
+                'empathetic_response' => $aiResponse
             ]);
         } else {
             return $this->json(['error' => 'Groq API error.'], 500);
