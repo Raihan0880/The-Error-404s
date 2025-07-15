@@ -1,0 +1,264 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}AI Farmer Agent Chat{% endblock %}
+
+{% block body %}
+<div class="flex flex-col md:flex-row flex-1">
+  <!-- Chat Section -->
+  <main class="w-full md:w-2/3 p-4 flex flex-col gap-4 bg-white shadow-lg rounded-lg m-4">
+    <h1 class="text-2xl font-bold text-green-700 mb-2">AI Farmer Agent Chat</h1>
+    <p class="mb-4 text-gray-700">Supports text, image, and voice input for plant identification.<br>AI asks for your region to provide weather-based advice.<br>Empathetic, adaptive responses.</p>
+    <div id="chat-window" class="flex-1 overflow-y-auto mb-4 max-h-96 border rounded p-2 bg-gray-50" aria-live="polite">
+      <!-- Chat messages will appear here -->
+      <div class="text-gray-500 text-sm">AI: Hi! I’m your AI Farmer Agent. What region are you in? (This helps me give you weather-based advice!)</div>
+    </div>
+    <form id="chat-form" class="flex flex-col gap-2" enctype="multipart/form-data" autocomplete="off">
+      <div class="flex gap-2 items-center">
+        <input type="text" id="user-input" name="message" class="flex-1 border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="Type your message or use the mic..." aria-label="Type your message">
+        <input type="file" id="image-input" name="image" accept="image/*" class="hidden" aria-label="Upload plant image">
+        <label for="image-input" class="cursor-pointer bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded border border-green-300" title="Upload image">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" /></svg>
+        </label>
+        <!-- Language Selector -->
+        <select id="lang-select" class="border rounded p-2 text-sm bg-white" aria-label="Select language">
+          <option value="en-US">English (US)</option>
+          <option value="hi-IN">Hindi (India)</option>
+          <option value="bn-IN">Bengali (India)</option>
+          <option value="te-IN">Telugu (India)</option>
+          <option value="mr-IN">Marathi (India)</option>
+          <option value="ta-IN">Tamil (India)</option>
+          <option value="gu-IN">Gujarati (India)</option>
+          <option value="kn-IN">Kannada (India)</option>
+          <option value="ml-IN">Malayalam (India)</option>
+          <option value="pa-IN">Punjabi (India)</option>
+          <option value="or-IN">Odia (India)</option>
+          <option value="ur-IN">Urdu (India)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="es-ES">Spanish</option>
+          <option value="fr-FR">French</option>
+          <option value="zh-CN">Chinese (Mandarin)</option>
+          <!-- Add more as needed -->
+        </select>
+        <!-- Microphone Button -->
+        <button type="button" id="mic-btn" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded border border-green-300 flex items-center" aria-label="Start voice input">
+          <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18v2m0 0a4 4 0 01-4-4h8a4 4 0 01-4 4zm0-14a4 4 0 014 4v4a4 4 0 01-8 0V8a4 4 0 014-4z" /></svg>
+        </button>
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded" aria-label="Send">Send</button>
+      </div>
+      <div id="voice-status" class="hidden text-green-600 flex items-center gap-2"><svg class="animate-pulse h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle></svg> Listening...</div>
+      <div id="chat-loading" class="hidden text-green-600 flex items-center gap-2"><svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Loading...</div>
+      <div id="chat-error" class="hidden text-red-600"></div>
+    </form>
+    <div class="text-xs text-gray-400 mt-2">Powered by Weather, Plant/AI, and Empathy APIs. Analytics by Supabase.</div>
+  </main>
+
+  <!-- Dashboard Section -->
+  <aside class="w-full md:w-1/3 p-4 flex flex-col gap-4 bg-green-100 shadow-lg rounded-lg m-4">
+    <h2 class="text-xl font-semibold text-green-800 mb-2">Dashboard</h2>
+    <div class="mb-4">
+      <div class="font-medium text-green-700">Current Weather</div>
+      <div id="weather-info" class="text-gray-700">(Weather data will appear here)</div>
+    </div>
+    <div class="mb-4">
+      <div class="font-medium text-green-700">Plant Health Trends</div>
+      <canvas id="plant-health-chart" class="w-full h-32"></canvas>
+    </div>
+    <div class="mb-4">
+      <div class="font-medium text-green-700">Recent User Queries</div>
+      <ul id="recent-queries" class="text-gray-700 text-sm list-disc pl-5">
+        <li>How do I treat yellow leaves on tomatoes?</li>
+        <li>What’s the weather for planting beans?</li>
+      </ul>
+    </div>
+    <div id="dashboard-error" class="hidden text-red-600"></div>
+  </aside>
+</div>
+
+<!-- Chart.js CDN for dashboard -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Placeholder: Plant Health Trends Chart
+const ctx = document.getElementById('plant-health-chart').getContext('2d');
+const plantHealthChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [{
+      label: 'Plant Health Index',
+      data: [80, 82, 78, 85, 90, 88, 92],
+      borderColor: '#16a34a',
+      backgroundColor: 'rgba(22,163,74,0.1)',
+      tension: 0.4,
+      fill: true,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { min: 0, max: 100 } }
+  }
+});
+
+// Voice Recognition (Web Speech API)
+const micBtn = document.getElementById('mic-btn');
+const micIcon = document.getElementById('mic-icon');
+const userInput = document.getElementById('user-input');
+const langSelect = document.getElementById('lang-select');
+const voiceStatus = document.getElementById('voice-status');
+let recognition, recognizing = false;
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = langSelect.value;
+
+  langSelect.addEventListener('change', () => {
+    recognition.lang = langSelect.value;
+  });
+
+  micBtn.addEventListener('click', () => {
+    if (recognizing) {
+      recognition.stop();
+      return;
+    }
+    recognition.lang = langSelect.value;
+    recognition.start();
+  });
+
+  recognition.onstart = () => {
+    recognizing = true;
+    micBtn.classList.add('bg-green-300');
+    voiceStatus.classList.remove('hidden');
+  };
+  recognition.onend = () => {
+    recognizing = false;
+    micBtn.classList.remove('bg-green-300');
+    voiceStatus.classList.add('hidden');
+  };
+  recognition.onerror = (event) => {
+    recognizing = false;
+    micBtn.classList.remove('bg-green-300');
+    voiceStatus.classList.add('hidden');
+    alert('Voice recognition error: ' + event.error);
+  };
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    userInput.value = transcript;
+    userInput.focus();
+  };
+} else {
+  micBtn.disabled = true;
+  micBtn.title = 'Voice input not supported in this browser.';
+}
+
+// --- Chat and API Integration ---
+const chatForm = document.getElementById('chat-form');
+const chatWindow = document.getElementById('chat-window');
+const chatLoading = document.getElementById('chat-loading');
+const chatError = document.getElementById('chat-error');
+const weatherInfo = document.getElementById('weather-info');
+let regionAsked = false;
+let userRegion = null;
+
+async function sendAnalytics(eventType, payload) {
+  try {
+    await fetch('/api/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: eventType, ...payload })
+    });
+  } catch (e) {
+    // Ignore analytics errors
+  }
+}
+
+chatForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  chatError.classList.add('hidden');
+  const input = document.getElementById('user-input');
+  const imageInput = document.getElementById('image-input');
+  const message = input.value.trim();
+  const hasImage = imageInput.files.length > 0;
+  if (!message && !hasImage) return;
+
+  // Show user message
+  const userMsg = document.createElement('div');
+  userMsg.className = 'text-right text-green-900 my-1';
+  userMsg.textContent = `You: ${message || '[Image uploaded]'}`;
+  chatWindow.appendChild(userMsg);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+  input.value = '';
+  imageInput.value = '';
+
+  chatLoading.classList.remove('hidden');
+
+  try {
+    if (!regionAsked) {
+      // First message: treat as region
+      const region = message;
+      const res = await fetch('/api/weather', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ region })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      userRegion = region;
+      weatherInfo.textContent = `${data.weather}, ${data.temperature}°C, ${data.description}`;
+      const aiMsg = document.createElement('div');
+      aiMsg.className = 'text-left text-green-700 my-1';
+      aiMsg.textContent = `Thanks! The weather in ${region} is ${data.weather}, ${data.temperature}°C. How can I help with your plants today?`;
+      chatWindow.appendChild(aiMsg);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      regionAsked = true;
+      sendAnalytics('region_set', { region });
+    } else if (hasImage) {
+      // Image upload: plant identification
+      const formData = new FormData();
+      formData.append('image', imageInput.files[0]);
+      const res = await fetch('/api/plant', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      const aiMsg = document.createElement('div');
+      aiMsg.className = 'text-left text-green-700 my-1';
+      aiMsg.textContent = `Plant identified: ${data.plant} (Confidence: ${(data.confidence * 100).toFixed(1)}%). Advice: ${data.advice}`;
+      chatWindow.appendChild(aiMsg);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      sendAnalytics('plant_identification', { plant: data.plant, confidence: data.confidence });
+    } else {
+      // Text message: empathy API
+      const res = await fetch('/api/empathy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, region: userRegion })
+      });
+      const data = await res.json();
+      const aiMsg = document.createElement('div');
+      aiMsg.className = 'text-left text-green-700 my-1';
+      aiMsg.textContent = data.empathetic_response;
+      chatWindow.appendChild(aiMsg);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      sendAnalytics('user_message', { message });
+    }
+  } catch (err) {
+    chatError.textContent = err.message || 'An error occurred.';
+    chatError.classList.remove('hidden');
+    sendAnalytics('error', { error: err.message });
+  } finally {
+    chatLoading.classList.add('hidden');
+  }
+});
+
+// Image upload button triggers file input
+const imageLabel = chatForm.querySelector('label[for="image-input"]');
+imageLabel.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    document.getElementById('image-input').click();
+  }
+});
+</script>
+{% endblock %}
