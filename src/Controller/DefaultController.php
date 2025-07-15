@@ -119,14 +119,18 @@ class DefaultController extends AbstractController
     {
         $apiKey = $_ENV['GROQ_API_KEY'] ?? 'YOUR_GROQ_API_KEY';
         $data = json_decode($this->getRequestContent(), true);
-        $message = $data['message'] ?? '';
+        $history = $data['history'] ?? null;
+        if (!$history || !is_array($history) || count($history) === 0) {
+            $message = $data['message'] ?? '';
+            $history = [
+                ['role' => 'system', 'content' => 'You are an empathetic farming assistant. Reply in short, clear sentences. Give practical, step-by-step solutions. Be friendly and concise.'],
+                ['role' => 'user', 'content' => $message]
+            ];
+        }
         $payload = [
             'model' => 'llama3-70b-8192',
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are an empathetic farming assistant. Respond with understanding and helpfulness.'],
-                ['role' => 'user', 'content' => $message]
-            ],
-            'max_tokens' => 150,
+            'messages' => $history,
+            'max_tokens' => 200,
             'temperature' => 0.7,
         ];
         $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');

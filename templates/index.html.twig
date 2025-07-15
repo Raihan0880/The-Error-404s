@@ -176,6 +176,9 @@ const chatError = document.getElementById('chat-error');
 const weatherInfo = document.getElementById('weather-info');
 let regionAsked = false;
 let userRegion = null;
+let chatHistory = [
+  { role: 'system', content: 'You are an empathetic farming assistant. Reply in short, clear sentences. Give practical, step-by-step solutions. Be friendly and concise.' }
+];
 
 async function sendAnalytics(eventType, payload) {
   try {
@@ -204,6 +207,9 @@ chatForm.addEventListener('submit', async (e) => {
   userMsg.textContent = `You: ${message || '[Image uploaded]'}`;
   chatWindow.appendChild(userMsg);
   chatWindow.scrollTop = chatWindow.scrollHeight;
+  if (message) {
+    chatHistory.push({ role: 'user', content: message });
+  }
   input.value = '';
   imageInput.value = '';
 
@@ -233,6 +239,13 @@ chatForm.addEventListener('submit', async (e) => {
       // Image upload: plant identification
       const formData = new FormData();
       formData.append('image', imageInput.files[0]);
+      // Show image preview in chat
+      const imgPreview = document.createElement('img');
+      imgPreview.src = URL.createObjectURL(imageInput.files[0]);
+      imgPreview.alt = 'Uploaded plant photo';
+      imgPreview.className = 'my-1 rounded shadow max-w-xs max-h-40 border border-green-200';
+      chatWindow.appendChild(imgPreview);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
       const res = await fetch('/api/plant', {
         method: 'POST',
         body: formData
@@ -240,16 +253,22 @@ chatForm.addEventListener('submit', async (e) => {
       const data = await res.json();
       const aiMsg = document.createElement('div');
       aiMsg.className = 'text-left text-green-700 my-1';
-      aiMsg.textContent = `Plant identified: ${data.plant} (Confidence: ${(data.confidence * 100).toFixed(1)}%). Advice: ${data.advice}`;
+      aiMsg.innerHTML = `
+        <strong>Plant identified:</strong> ${data.plant} (${data.common_name})<br>
+        <strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%<br>
+        <strong>Diagnosis & Advice:</strong> ${data.diagnosis}
+      `;
       chatWindow.appendChild(aiMsg);
       chatWindow.scrollTop = chatWindow.scrollHeight;
       sendAnalytics('plant_identification', { plant: data.plant, confidence: data.confidence });
-    } else {
-      // Text message: empathy API
+      // Add plant diagnosis to chat history for context
+      chatHistory.push({ role: 'assistant', content: `Plant identified: ${data.plant} (${data.common_name}). Diagnosis & Advice: ${data.diagnosis}` });
+    } else if (message) {
+      // Text message: empathy API with chat history
       const res = await fetch('/api/empathy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, region: userRegion })
+        body: JSON.stringify({ history: chatHistory })
       });
       const data = await res.json();
       const aiMsg = document.createElement('div');
@@ -257,6 +276,8 @@ chatForm.addEventListener('submit', async (e) => {
       aiMsg.textContent = data.empathetic_response;
       chatWindow.appendChild(aiMsg);
       chatWindow.scrollTop = chatWindow.scrollHeight;
+      // Add AI reply to chat history
+      chatHistory.push({ role: 'assistant', content: data.empathetic_response });
       sendAnalytics('user_message', { message });
     }
   } catch (err) {
