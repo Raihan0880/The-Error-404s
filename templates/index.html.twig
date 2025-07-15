@@ -239,13 +239,17 @@ chatForm.addEventListener('submit', async (e) => {
       // Image upload: plant identification
       const formData = new FormData();
       formData.append('image', imageInput.files[0]);
-      // Show image preview in chat
-      const imgPreview = document.createElement('img');
-      imgPreview.src = URL.createObjectURL(imageInput.files[0]);
-      imgPreview.alt = 'Uploaded plant photo';
-      imgPreview.className = 'my-1 rounded shadow max-w-xs max-h-40 border border-green-200';
-      chatWindow.appendChild(imgPreview);
-      chatWindow.scrollTop = chatWindow.scrollHeight;
+      // Show image preview in chat BEFORE clearing the input
+      if (imageInput.files && imageInput.files[0]) {
+        const imgPreview = document.createElement('img');
+        imgPreview.src = URL.createObjectURL(imageInput.files[0]);
+        imgPreview.alt = 'Uploaded plant photo';
+        imgPreview.className = 'my-1 rounded shadow max-w-xs max-h-40 border border-green-200';
+        chatWindow.appendChild(imgPreview);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+      input.value = '';
+      imageInput.value = '';
       const res = await fetch('/api/plant', {
         method: 'POST',
         body: formData
