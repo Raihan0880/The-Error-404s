@@ -38,60 +38,100 @@ class DefaultController extends AbstractController
     #[Route('/api/weather', name: 'api_weather', methods: ['POST'])]
     public function weather(): JsonResponse
     {
-        // Placeholder for OpenWeatherMap API key
-        $apiKey = 'YOUR_OPENWEATHERMAP_API_KEY';
         $data = json_decode($this->getRequestContent(), true);
         $region = $data['region'] ?? null;
         if (!$region) {
             return $this->json(['error' => 'Region is required.'], 400);
         }
-        // TODO: Call real weather API
-        // Return mock data for now
+        $url = "https://wttr.in/" . urlencode($region) . "?format=j1";
+        $response = @file_get_contents($url);
+        if ($response === false) {
+            return $this->json(['error' => 'Weather API error.'], 500);
+        }
+        $weatherData = json_decode($response, true);
+        if (!isset($weatherData['current_condition'][0])) {
+            return $this->json(['error' => 'Weather not found.'], 404);
+        }
+        $current = $weatherData['current_condition'][0];
         return $this->json([
             'region' => $region,
-            'weather' => 'Sunny',
-            'temperature' => 32,
-            'humidity' => 60,
-            'description' => 'Clear sky',
+            'weather' => $current['weatherDesc'][0]['value'] ?? '',
+            'temperature' => $current['temp_C'] ?? '',
+            'humidity' => $current['humidity'] ?? '',
+            'description' => $current['weatherDesc'][0]['value'] ?? '',
         ]);
     }
 
     #[Route('/api/plant', name: 'api_plant', methods: ['POST'])]
-    public function plant(): JsonResponse
+    public function plant(\Symfony\Component\HttpFoundation\Request $request): JsonResponse
     {
-        // Placeholder for Plant.id API key
-        $apiKey = 'YOUR_PLANTID_API_KEY';
-        // TODO: Handle image upload and call Plant.id API
-        // Return mock data for now
-        return $this->json([
-            'plant' => 'Tomato',
-            'confidence' => 0.95,
-            'advice' => 'Water regularly and provide full sunlight.'
-        ]);
+        $apiKey = $_ENV['PLANTNET_API_KEY'] ?? 'YOUR_PLANTNET_API_KEY';
+        $file = $request->files->get('image');
+        if (!$file) {
+            return $this->json(['error' => 'Image is required.'], 400);
+        }
+        $ch = curl_init("https://my-api.plantnet.org/v2/identify/all?api-key=$apiKey");
+        $cfile = new \CURLFile($file->getPathname(), $file->getMimeType(), $file->getClientOriginalName());
+        $post = ['images' => $cfile, 'organs' => 'auto'];
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $data = json_decode($result, true);
+        if (isset($data['results'][0])) {
+            $plant = $data['results'][0]['species']['scientificNameWithoutAuthor'] ?? 'Unknown';
+            $score = $data['results'][0]['score'] ?? 0;
+            $advice = $data['results'][0]['species']['commonNames'][0] ?? 'No advice available.';
+            return $this->json([
+                'plant' => $plant,
+                'confidence' => $score,
+                'advice' => $advice
+            ]);
+        } else {
+            return $this->json(['error' => 'Could not identify plant.'], 500);
+        }
     }
 
     #[Route('/api/empathy', name: 'api_empathy', methods: ['POST'])]
     public function empathy(): JsonResponse
     {
-        // Placeholder for Empathy API key
-        $apiKey = 'YOUR_EMPATHY_API_KEY';
+        $apiKey = $_ENV['GROQ_API_KEY'] ?? 'YOUR_GROQ_API_KEY';
         $data = json_decode($this->getRequestContent(), true);
         $message = $data['message'] ?? '';
-        // TODO: Call real Empathy API
-        // Return mock data for now
-        return $this->json([
-            'empathetic_response' => 'I understand how you feel. Let me help you with your plant!'
+        $payload = [
+            'model' => 'llama3-70b-8192',
+            'messages' => [
+                ['role' => 'system', 'content' => 'You are an empathetic farming assistant. Respond with understanding and helpfulness.'],
+                ['role' => 'user', 'content' => $message]
+            ],
+            'max_tokens' => 150,
+            'temperature' => 0.7,
+        ];
+        $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Content-Type: application/json",
+            "Authorization: Bearer $apiKey"
         ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $data = json_decode($result, true);
+        if (isset($data['choices'][0]['message']['content'])) {
+            return $this->json([
+                'empathetic_response' => $data['choices'][0]['message']['content']
+            ]);
+        } else {
+            return $this->json(['error' => 'Groq API error.'], 500);
+        }
     }
 
     #[Route('/api/analytics', name: 'api_analytics', methods: ['POST'])]
     public function analytics(): JsonResponse
     {
-        // Placeholder for Supabase API key
-        $apiKey = 'YOUR_SUPABASE_API_KEY';
         $data = json_decode($this->getRequestContent(), true);
-        // TODO: Send analytics data to Supabase
-        // Return mock data for now
+        file_put_contents(__DIR__ . '/../../var/analytics.log', json_encode($data) . PHP_EOL, FILE_APPEND);
         return $this->json(['status' => 'ok']);
     }
 
