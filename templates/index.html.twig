@@ -19,6 +19,10 @@
         <label for="image-input" class="cursor-pointer bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded border border-green-300" title="Upload image">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" /></svg>
         </label>
+        <!-- Camera Button -->
+        <button type="button" id="camera-btn" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded border border-green-300 flex items-center" aria-label="Open camera" title="Take a photo">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h2l2-3h10l2 3h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2zm9 3a4 4 0 100 8 4 4 0 000-8z" /></svg>
+        </button>
         <!-- Language Selector -->
         <select id="lang-select" class="border rounded p-2 text-sm bg-white" aria-label="Select language">
           <option value="en-US">English (US)</option>
@@ -44,6 +48,17 @@
           <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18v2m0 0a4 4 0 01-4-4h8a4 4 0 01-4 4zm0-14a4 4 0 014 4v4a4 4 0 01-8 0V8a4 4 0 014-4z" /></svg>
         </button>
         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded" aria-label="Send">Send</button>
+      </div>
+      <!-- Camera Modal -->
+      <div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-4 flex flex-col items-center gap-2 relative">
+          <video id="camera-video" autoplay playsinline class="rounded w-64 h-48 bg-black"></video>
+          <canvas id="camera-canvas" class="hidden"></canvas>
+          <div class="flex gap-2 mt-2">
+            <button id="capture-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Capture</button>
+            <button id="close-camera-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">Close</button>
+          </div>
+        </div>
       </div>
       <div id="voice-status" class="hidden text-green-600 flex items-center gap-2"><svg class="animate-pulse h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle></svg> Listening...</div>
       <div id="chat-loading" class="hidden text-green-600 flex items-center gap-2"><svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Loading...</div>
@@ -259,6 +274,56 @@ imageLabel.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') {
     document.getElementById('image-input').click();
   }
+});
+
+// Camera integration
+const cameraBtn = document.getElementById('camera-btn');
+const cameraModal = document.getElementById('camera-modal');
+const cameraVideo = document.getElementById('camera-video');
+const cameraCanvas = document.getElementById('camera-canvas');
+const captureBtn = document.getElementById('capture-btn');
+const closeCameraBtn = document.getElementById('close-camera-btn');
+const imageInput = document.getElementById('image-input');
+let cameraStream = null;
+
+cameraBtn.addEventListener('click', async () => {
+  cameraModal.classList.remove('hidden');
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    cameraVideo.srcObject = cameraStream;
+  } catch (err) {
+    alert('Camera not available: ' + err.message);
+    cameraModal.classList.add('hidden');
+  }
+});
+
+closeCameraBtn.addEventListener('click', () => {
+  cameraModal.classList.add('hidden');
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+});
+
+captureBtn.addEventListener('click', () => {
+  const context = cameraCanvas.getContext('2d');
+  cameraCanvas.width = cameraVideo.videoWidth;
+  cameraCanvas.height = cameraVideo.videoHeight;
+  context.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+  cameraCanvas.toBlob(blob => {
+    // Create a File from the blob and set it to the image input
+    const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+    // Create a DataTransfer to set the file input
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    imageInput.files = dt.files;
+    // Optionally, show a preview or close the modal
+    cameraModal.classList.add('hidden');
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream = null;
+    }
+  }, 'image/jpeg');
 });
 </script>
 {% endblock %}
