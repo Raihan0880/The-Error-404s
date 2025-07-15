@@ -8,7 +8,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     {% block stylesheets %}{% endblock %}
-    {% block javascripts %}{% endblock %}
+    {% block javascripts %}
+      <script src="/assets/js/voice.js"></script>
+    {% endblock %}
   </head>
   <body class="bg-green-50 min-h-screen flex flex-col">
     {% block body %}{% endblock %}
