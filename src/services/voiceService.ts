@@ -7,25 +7,40 @@ declare global {
   var SpeechRecognition: any;
 }
 
-const ELEVENLABS_API_KEY = 'sk_759bd50f70e243c2996a4534e6f5fbda10475e92c11029a6';
-const elevenLabsLangMap: Record<string, string> = {
-  en: 'en',
-  hi: 'hi',
-  ta: 'ta',
-  te: 'te',
-  bn: 'bn',
-  kn: 'kn',
-  ml: 'ml',
-  mr: 'mr',
-  gu: 'gu',
-  pa: 'pa',
-  ur: 'ur',
+// Enhanced language mapping for Indian regional languages
+const speechRecognitionLangMap: Record<string, string> = {
+  en: 'en-IN', // Indian English
+  hi: 'hi-IN',
+  ta: 'ta-IN',
+  te: 'te-IN',
+  bn: 'bn-IN',
+  kn: 'kn-IN',
+  ml: 'ml-IN',
+  mr: 'mr-IN',
+  gu: 'gu-IN',
+  pa: 'pa-IN',
+  ur: 'ur-PK',
+};
+
+const speechSynthesisLangMap: Record<string, string> = {
+  en: 'en-IN',
+  hi: 'hi-IN',
+  ta: 'ta-IN',
+  te: 'te-IN',
+  bn: 'bn-IN',
+  kn: 'kn-IN',
+  ml: 'ml-IN',
+  mr: 'mr-IN',
+  gu: 'gu-IN',
+  pa: 'pa-IN',
+  ur: 'ur-PK',
 };
 
 export class VoiceService {
   private recognition: any = null;
   private synthesis: SpeechSynthesis;
   private isListening = false;
+  private currentLanguage = 'en';
 
   constructor() {
     this.synthesis = window.speechSynthesis;
@@ -40,7 +55,8 @@ export class VoiceService {
     if (this.recognition) {
       this.recognition.continuous = false;
       this.recognition.interimResults = false;
-      this.recognition.lang = 'en-US';
+      this.recognition.lang = 'en-IN'; // Default to Indian English
+      this.recognition.maxAlternatives = 3;
     }
   }
 
@@ -59,9 +75,18 @@ export class VoiceService {
       this.isListening = true;
 
       this.recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
+        let transcript = '';
+        
+        // Get the best result from alternatives
+        for (let i = 0; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            transcript = event.results[i][0].transcript;
+            break;
+          }
+        }
+        
         this.isListening = false;
-        resolve(transcript);
+        resolve(transcript.trim());
       };
 
       this.recognition.onerror = (event: any) => {
@@ -89,8 +114,8 @@ export class VoiceService {
     }
   }
 
-  speak(text: string, language: string = 'en-US'): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+  speak(text: string, language: string = 'en'): Promise<void> {
+    return new Promise((resolve, reject) => {
       if (!this.synthesis) {
         reject(new Error('Speech synthesis not supported'));
         return;
@@ -99,66 +124,76 @@ export class VoiceService {
       // Cancel any ongoing speech
       this.synthesis.cancel();
 
-      // Try ElevenLabs TTS first for supported languages
-      const langCode = Object.keys(elevenLabsLangMap).find(l => language.startsWith(l)) || 'en';
-      try {
-        const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/voice-generation', {
-          method: 'POST',
-          headers: {
-            'xi-api-key': ELEVENLABS_API_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: { stability: 0.5, similarity_boost: 0.7 },
-            // You can specify a voice_id for a specific voice if desired
-            // voice_id: '...',
-            language_id: elevenLabsLangMap[langCode] || 'en',
-          })
-        });
-        if (response.ok) {
-          const blob = await response.blob();
-          const audioUrl = URL.createObjectURL(blob);
-          const audio = new Audio(audioUrl);
-          audio.onended = () => resolve();
-          audio.onerror = (e) => reject(new Error('Audio playback error'));
-          audio.play();
-          return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      const synthLang = speechSynthesisLangMap[language] || 'en-IN';
+      
+      utterance.lang = synthLang;
+      utterance.rate = 0.9; // Slightly slower for clarity
+      utterance.pitch = 1.0; // Natural pitch
+      utterance.volume = 1;
+
+      // Wait for voices to load
+      const setVoice = () => {
+        const voices = this.synthesis.getVoices();
+        
+        // Priority order for voice selection
+        let selectedVoice = null;
+        
+        // 1. Try to find exact language match with Indian accent
+        selectedVoice = voices.find(voice => 
+          voice.lang === synthLang && 
+          (voice.name.toLowerCase().includes('indian') || 
+           voice.name.toLowerCase().includes('india') ||
+           voice.localService === true)
+        );
+        
+        // 2. Try to find exact language match
+        if (!selectedVoice) {
+          selectedVoice = voices.find(voice => voice.lang === synthLang);
         }
-      } catch (err) {
-        // Fallback to browser TTS below
+        
+        // 3. Try to find language family match (e.g., 'hi' for 'hi-IN')
+        if (!selectedVoice) {
+          const langCode = synthLang.split('-')[0];
+          selectedVoice = voices.find(voice => voice.lang.startsWith(langCode));
+        }
+        
+        // 4. For English, prefer Indian English or natural sounding voices
+        if (!selectedVoice && language === 'en') {
+          selectedVoice = voices.find(voice => 
+            voice.lang.includes('en') && 
+            (voice.name.toLowerCase().includes('indian') ||
+             voice.name.toLowerCase().includes('natural') ||
+             voice.name.toLowerCase().includes('female'))
+          );
+        }
+        
+        // 5. Fallback to any English voice
+        if (!selectedVoice && language === 'en') {
+          selectedVoice = voices.find(voice => voice.lang.startsWith('en'));
+        }
+        
+        // 6. Final fallback
+        if (!selectedVoice && voices.length > 0) {
+          selectedVoice = voices[0];
+        }
+        
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+        }
+      };
+
+      // Set voice immediately if voices are already loaded
+      if (this.synthesis.getVoices().length > 0) {
+        setVoice();
+      } else {
+        // Wait for voices to load
+        this.synthesis.onvoiceschanged = setVoice;
       }
 
-      // Fallback: browser TTS
-      // Map app language code to BCP-47 locale
-      const langMap: Record<string, string> = {
-        en: 'en-US',
-        hi: 'hi-IN',
-        ta: 'ta-IN',
-        te: 'te-IN',
-        bn: 'bn-IN',
-        kn: 'kn-IN',
-        ml: 'ml-IN',
-        mr: 'mr-IN',
-        gu: 'gu-IN',
-        pa: 'pa-IN',
-        ur: 'ur-IN',
-      };
-      const synthLang = langMap[language] || 'en-US';
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = synthLang;
-      utterance.rate = 0.85;
-      utterance.pitch = 1.2;
-      utterance.volume = 1;
-      const voices = window.speechSynthesis.getVoices();
-      utterance.voice =
-        voices.find(v => v.lang === synthLang) ||
-        voices.find(v => v.lang.startsWith(synthLang.split('-')[0])) ||
-        voices.find(v => v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('english')) ||
-        voices[0];
       utterance.onend = () => resolve();
       utterance.onerror = (event) => reject(new Error(`Speech synthesis error: ${event.error}`));
+      
       this.synthesis.speak(utterance);
     });
   }
@@ -178,9 +213,25 @@ export class VoiceService {
   }
 
   setLanguage(language: string): void {
+    this.currentLanguage = language;
     if (this.recognition) {
-      this.recognition.lang = language;
+      this.recognition.lang = speechRecognitionLangMap[language] || 'en-IN';
     }
+  }
+
+  getCurrentLanguage(): string {
+    return this.currentLanguage;
+  }
+
+  // Get voices for a specific language
+  getVoicesForLanguage(language: string): SpeechSynthesisVoice[] {
+    const voices = this.getAvailableVoices();
+    const synthLang = speechSynthesisLangMap[language] || 'en-IN';
+    const langCode = synthLang.split('-')[0];
+    
+    return voices.filter(voice => 
+      voice.lang === synthLang || voice.lang.startsWith(langCode)
+    );
   }
 }
 
