@@ -254,7 +254,7 @@ export const WeatherAdvice: React.FC<WeatherAdviceProps> = ({ userPreferences, i
                 {weatherData.advice.map((advice, index) => (
                   <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-gray-700 dark:text-gray-300">{advice}</p>
+                    <p className="text-gray-700 dark:text-gray-300">{t(advice)}</p>
                   </div>
                 ))}
               </div>
