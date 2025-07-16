@@ -59,7 +59,13 @@ function App() {
       setActiveTab('dashboard');
     } else if (lowerCommand.includes('weather') || lowerCommand.includes('check weather')) {
       setActiveTab('weather');
-    } else if (lowerCommand.includes('plant') || lowerCommand.includes('identify plant')) {
+    } else if (
+      lowerCommand.includes('identify this plant') ||
+      lowerCommand.includes('plant identification') ||
+      lowerCommand.includes('what plant is this') ||
+      lowerCommand.includes('identify plant') ||
+      lowerCommand.includes('what is this plant')
+    ) {
       setActiveTab('plant');
     } else if (lowerCommand.includes('chat') || lowerCommand.includes('talk')) {
       setActiveTab('chat');

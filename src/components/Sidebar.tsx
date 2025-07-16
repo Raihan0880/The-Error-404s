@@ -45,6 +45,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         className={`fixed md:static top-0 left-0 z-50 md:z-0 h-full w-72 md:w-80 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 flex flex-col transition-transform duration-300 ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
         style={{ maxWidth: '90vw' }}
       >
+        {/* Logo */}
+        <div className="flex items-center space-x-3 px-8 pt-8 pb-4">
+          <span className="text-3xl">🧑‍🌾</span>
+          <span className="text-2xl font-bold text-green-700 dark:text-green-400 tracking-tight">Error 404s</span>
+        </div>
         {/* Close button for mobile */}
         {typeof window !== 'undefined' && window.innerWidth < 768 && (
           <button
