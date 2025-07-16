@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bot, User, Leaf, CheckCircle, AlertCircle, Thermometer, Droplets, Wind } from 'lucide-react';
 import { Message } from '../types';
+import aiPfp from '../AK61916.jpg';
 
 interface ChatMessageProps {
   message: Message;
@@ -94,7 +95,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           {isUser ? (
             <User size={16} className="text-white" />
           ) : (
-            <Bot size={16} className="text-gray-600 dark:text-gray-400" />
+            <img src={aiPfp} alt="AI" className="w-8 h-8 rounded-full object-cover" />
           )}
         </div>
         
