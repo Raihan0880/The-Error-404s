@@ -17,23 +17,6 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-
-  /* Responsive font sizes */
-  html {
-    font-size: 16px;
-  }
-
-  @media (max-width: 640px) {
-    html {
-      font-size: 14px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    html {
-      font-size: 13px;
-    }
-  }
 }
 
 @layer components {
@@ -47,51 +30,6 @@
   
   .animate-scale-in {
     animation: scaleIn 0.2s ease-out;
-  }
-
-  /* Responsive utilities */
-  .responsive-padding {
-    @apply px-4 sm:px-6 lg:px-8;
-  }
-
-  .responsive-margin {
-    @apply mx-4 sm:mx-6 lg:mx-8;
-  }
-
-  .responsive-text {
-    @apply text-sm sm:text-base lg:text-lg;
-  }
-
-  .responsive-heading {
-    @apply text-lg sm:text-xl lg:text-2xl;
-  }
-
-  .responsive-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
-  }
-
-  /* Mobile-first button styles */
-  .btn-mobile {
-    @apply px-4 py-3 text-base font-medium rounded-xl transition-all duration-300;
-    min-height: 44px; /* iOS touch target minimum */
-  }
-
-  .btn-mobile:active {
-    @apply scale-95;
-  }
-
-  /* Touch-friendly spacing */
-  .touch-spacing {
-    @apply space-y-4 sm:space-y-3;
-  }
-
-  /* Responsive containers */
-  .container-responsive {
-    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-  }
-
-  .card-responsive {
-    @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6;
   }
 }
 
@@ -149,8 +87,7 @@
 /* Focus styles for accessibility */
 button:focus,
 input:focus,
-textarea:focus,
-select:focus {
+textarea:focus {
   outline: 2px solid #22c55e;
   outline-offset: 2px;
 }
@@ -168,150 +105,4 @@ select:focus {
   .border-gray-200 {
     @apply border-gray-400;
   }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Print styles */
-@media print {
-  .no-print {
-    display: none !important;
-  }
-  
-  body {
-    background: white !important;
-    color: black !important;
-  }
-}
-
-/* Mobile landscape orientation */
-@media screen and (orientation: landscape) and (max-height: 500px) {
-  .mobile-landscape-adjust {
-    @apply py-2;
-  }
-}
-
-/* Safe area insets for mobile devices */
-@supports (padding: max(0px)) {
-  .safe-area-inset {
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
-    padding-top: max(1rem, env(safe-area-inset-top));
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  }
-}
-
-/* Dynamic viewport height for mobile */
-.min-h-screen-mobile {
-  min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height */
-}
-
-/* Improved touch targets */
-@media (pointer: coarse) {
-  button,
-  input[type="button"],
-  input[type="submit"],
-  input[type="reset"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-}
-
-/* RTL support improvements */
-[dir="rtl"] {
-  .rtl\:space-x-reverse > :not([hidden]) ~ :not([hidden]) {
-    --tw-space-x-reverse: 1;
-  }
-  
-  .rtl\:ml-auto {
-    margin-left: auto;
-  }
-  
-  .rtl\:mr-0 {
-    margin-right: 0;
-  }
-}
-
-/* Loading states */
-.loading-shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-.dark .loading-shimmer {
-  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
-  background-size: 200% 100%;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-/* Improved form styles */
-.form-input {
-  @apply w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300;
-}
-
-.form-input:invalid {
-  @apply border-red-300 focus:ring-red-500;
-}
-
-/* Better button states */
-.btn-primary {
-  @apply bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md active:shadow-sm;
-}
-
-.btn-secondary {
-  @apply bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 active:bg-gray-300 dark:active:bg-gray-500 text-gray-700 dark:text-gray-300 font-semibold py-3 px-6 rounded-xl transition-all duration-300;
-}
-
-/* Notification styles */
-.notification {
-  @apply fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 max-w-sm animate-slide-up;
-}
-
-.notification.success {
-  @apply border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20;
-}
-
-.notification.error {
-  @apply border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20;
-}
-
-.notification.warning {
-  @apply border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20;
-}
-
-/* Improved accessibility */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Skip link for keyboard navigation */
-.skip-link {
-  @apply absolute top-0 left-0 bg-green-600 text-white px-4 py-2 rounded-br-lg transform -translate-y-full focus:translate-y-0 transition-transform z-50;
 }
