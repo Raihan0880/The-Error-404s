@@ -22,6 +22,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userPreferences,
   isDarkMode, 
   onDarkModeToggle,
+  isVoiceActive,
+  onVoiceToggle,
   open = true,
   setOpen
 }) => {
@@ -75,6 +77,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </li>
               );
             })}
+            {/* AI Voice Feature Button */}
+            <button
+              onClick={() => onVoiceToggle(!isVoiceActive)}
+              className={`w-full flex items-center space-x-4 px-6 py-4 rounded-2xl transition-all duration-300 text-left text-lg font-semibold tracking-tight shadow-sm border border-transparent mt-8 ${
+                isVoiceActive
+                  ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 scale-105'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:scale-105'
+              }`}
+            >
+              <Mic size={28} className={isVoiceActive ? 'text-green-500 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'} />
+              <span>AI Voice</span>
+            </button>
           </ul>
         </nav>
         {/* Dark mode toggle only */}

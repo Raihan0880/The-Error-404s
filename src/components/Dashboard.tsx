@@ -137,6 +137,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ userPreferences, isDarkMod
           </div>
         )}
       </div>
+      {/* Profile Footer */}
+      <footer className="w-full max-w-2xl mx-auto mt-8 text-center text-xs text-gray-500 dark:text-gray-400 opacity-80">
+        Profile: <span className="font-semibold">{userPreferences.name}</span> &bull; Region: <span className="font-semibold">{userPreferences.region}</span>
+      </footer>
     </div>
   );
 };

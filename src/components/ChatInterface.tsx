@@ -307,31 +307,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
           
-          <button
-            type="button"
-            onClick={handleVoiceInput}
-            disabled={isListening}
-            className={`p-3 rounded-xl transition-all duration-300 ${
-              isListening
-                ? 'bg-green-500 text-white animate-pulse'
-                : 'bg-gray-100 dark:bg-gray-700 hover:bg-green-50 dark:hover:bg-green-900/30 text-gray-600 dark:text-gray-400 hover:text-green-600'
-            }`}
-          >
-            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => onVoiceToggle(!isVoiceActive)}
-            className={`p-3 rounded-xl transition-all duration-300 ${
-              isVoiceActive
-                ? 'bg-red-500 hover:bg-red-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 hover:bg-green-50 dark:hover:bg-green-900/30 text-gray-600 dark:text-gray-400 hover:text-green-600'
-            }`}
-          >
-            {isVoiceActive ? '🎤' : '🤖'}
-          </button>
-          
+          {/* Removed mic and voice toggle buttons */}
           <button
             type="submit"
             disabled={!inputText.trim()}
