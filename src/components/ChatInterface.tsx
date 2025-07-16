@@ -245,8 +245,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Farm Assistant Chat</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Ask me anything about farming, plants, or weather</p>
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Farm Assistant Chat</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400">Ask me anything about farming, plants, or weather</p>
           </div>
           <div className="flex items-center space-x-2">
             {voiceService.isSupported() && (

@@ -2,6 +2,7 @@ import React from 'react';
 import { MessageSquare, Camera, CloudRain, BarChart3, User, Settings, Mic } from 'lucide-react';
 import { DarkModeToggle } from './DarkModeToggle';
 import { UserPreferences } from '../types';
+import { useTranslation } from '../hooks/useTranslation';
 
 export interface SidebarProps {
   activeTab: string;
@@ -18,19 +19,18 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ 
   activeTab, 
   onTabChange, 
-  userPreferences, 
+  userPreferences,
   isDarkMode, 
   onDarkModeToggle,
-  isVoiceActive,
-  onVoiceToggle,
   open = true,
   setOpen
 }) => {
+  const { t } = useTranslation(userPreferences);
   const menuItems = [
-    { id: 'chat', icon: MessageSquare, label: 'Chat', description: 'Ask questions' },
-    { id: 'plant', icon: Camera, label: 'Plant ID', description: 'Identify plants' },
-    { id: 'weather', icon: CloudRain, label: 'Weather', description: 'Get advice' },
-    { id: 'dashboard', icon: BarChart3, label: 'Dashboard', description: 'View analytics' },
+    { id: 'chat', icon: MessageSquare, label: t('chat') },
+    { id: 'plant', icon: Camera, label: t('plant_id') },
+    { id: 'weather', icon: CloudRain, label: t('weather') },
+    { id: 'dashboard', icon: BarChart3, label: t('dashboard') },
   ];
 
   return (
@@ -53,21 +53,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <svg className="w-6 h-6 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         )}
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-              <User size={20} className="text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-800 dark:text-gray-200">Welcome back, {userPreferences.name}!</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{userPreferences.region}</p>
-            </div>
-          </div>
-        </div>
         {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 p-8 flex flex-col justify-center">
+          <ul className="space-y-6">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -75,55 +63,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <li key={item.id}>
                   <button
                     onClick={() => onTabChange(item.id as any)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 text-left ${
+                    className={`w-full flex items-center space-x-4 px-6 py-4 rounded-2xl transition-all duration-300 text-left text-lg font-semibold tracking-tight shadow-sm border border-transparent ${
                       isActive
-                        ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-2 border-green-200 dark:border-green-700'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 scale-105'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:scale-105'
                     }`}
                   >
-                    <Icon size={20} className={isActive ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'} />
-                    <div>
-                      <div className="font-medium">{item.label}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{item.description}</div>
-                    </div>
+                    <Icon size={28} className={isActive ? 'text-green-500 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'} />
+                    <span>{item.label}</span>
                   </button>
                 </li>
               );
             })}
           </ul>
         </nav>
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          {/* Voice Assistant Toggle */}
-          <div className="mb-4">
-            <button
-              onClick={() => onVoiceToggle(!isVoiceActive)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-                isVoiceActive
-                  ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-2 border-green-200 dark:border-green-700'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
-            >
-              <Mic size={20} className={isVoiceActive ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'} />
-              <div>
-                <div className="font-medium">Voice Assistant</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {isVoiceActive ? 'Active' : 'Click to activate'}
-                </div>
-              </div>
-              {isVoiceActive && (
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              )}
-            </button>
-          </div>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Theme</span>
-            <DarkModeToggle isDarkMode={isDarkMode} onToggle={onDarkModeToggle} />
-          </div>
-          <button className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-all duration-300">
-            <Settings size={20} className="text-gray-500 dark:text-gray-400" />
-            <span>Settings</span>
-          </button>
+        {/* Dark mode toggle only */}
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('theme')}</span>
+          <DarkModeToggle isDarkMode={isDarkMode} onToggle={onDarkModeToggle} />
         </div>
       </div>
     </>

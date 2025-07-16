@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sprout, Globe, User, ArrowRight } from 'lucide-react';
 import { DarkModeToggle } from './DarkModeToggle';
 import { UserPreferences } from '../types';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface WelcomeScreenProps {
   onComplete: (name: string, region: string) => void;
@@ -31,12 +32,18 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
   const languages = [
     { code: 'en', name: 'English' },
-    { code: 'es', name: 'Español' },
-    { code: 'fr', name: 'Français' },
-    { code: 'de', name: 'Deutsch' },
-    { code: 'zh', name: '中文' }
+    { code: 'hi', name: 'हिन्दी (Hindi)' },
+    { code: 'ta', name: 'தமிழ் (Tamil)' },
+    { code: 'te', name: 'తెలుగు (Telugu)' },
+    { code: 'bn', name: 'বাংলা (Bengali)' },
+    { code: 'kn', name: 'ಕನ್ನಡ (Kannada)' },
+    { code: 'ml', name: 'മലയാളം (Malayalam)' },
+    { code: 'mr', name: 'मराठी (Marathi)' },
+    { code: 'gu', name: 'ગુજરાતી (Gujarati)' },
+    { code: 'pa', name: 'ਪੰਜਾਬੀ (Punjabi)' }
   ];
 
+  const { t } = useTranslation(preferences);
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
@@ -60,7 +67,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             {step === 1 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Choose Your Language</h2>
+                  <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">{t('choose_language')}</h2>
                   <div className="grid grid-cols-2 gap-3">
                     {languages.map((lang) => (
                       <button
@@ -83,7 +90,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   onClick={() => setStep(2)}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2"
                 >
-                  <span>Continue</span>
+                  <span>{t('continue')}</span>
                   <ArrowRight size={20} />
                 </button>
               </div>
@@ -92,13 +99,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             {step === 2 && (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Tell us about yourself</h2>
+                  <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6">{t('welcome')}</h2>
                   
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <User size={16} className="inline mr-2" />
-                        Your Name
+                        {t('your_name')}
                       </label>
                       <input
                         type="text"
@@ -113,7 +120,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <Globe size={16} className="inline mr-2" />
-                        Your Region
+                        {t('your_region')}
                       </label>
                       <input
                         type="text"
@@ -133,13 +140,13 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                     onClick={() => setStep(1)}
                     className="flex-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 font-semibold py-4 px-6 rounded-xl transition-all duration-300"
                   >
-                    Back
+                    {t('back')}
                   </button>
                   <button
                     type="submit"
                     className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2"
                   >
-                    <span>Start Farming</span>
+                    <span>{t('start_farming')}</span>
                     <Sprout size={20} />
                   </button>
                 </div>

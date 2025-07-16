@@ -42,8 +42,11 @@ export class AIService {
 
   async generateResponse(message: string, userPreferences: UserPreferences, context?: string): Promise<string> {
     try {
+      // Always instruct the AI to reply in the selected language
+      const languageContext = `IMPORTANT: Always reply in the user's selected language: ${userPreferences.language}.`;
+      const fullContext = context ? `${context} ${languageContext}` : languageContext;
       // Try Gemini API first
-      return await this.callGeminiAPI(message, userPreferences, context);
+      return await this.callGeminiAPI(message, userPreferences, fullContext);
     } catch (error) {
       console.error('Gemini API Error:', error);
       
@@ -132,7 +135,7 @@ Answer:`;
     const response = await this.generateResponse(
       transcript,
       userPreferences,
-      "Keep this response very short, concise, and empathetic. Respond in a warm, caring, and supportive tone. Acknowledge the user's feelings or concerns. Limit to 2-3 sentences maximum (unless it's a solution to a problem). IMPORTANT: Always reply in the same language as the user's input."
+      "Keep this response very short, concise, and empathetic. Respond in a warm, caring, and supportive tone. Acknowledge the user's feelings or concerns. Limit to 2-3 sentences maximum (unless it's a solution to a problem)."
     );
     return response;
   }

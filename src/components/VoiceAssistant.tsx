@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Settings } from 'lucide-react';
+import { Mic, MicOff, X, EyeOff, Volume2, VolumeX } from 'lucide-react';
 import { UserPreferences, VoiceState } from '../types';
 import { voiceService } from '../services/voiceService';
 import { aiService } from '../services/aiService';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface VoiceAssistantProps {
   isActive: boolean;
@@ -19,6 +20,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   isDarkMode,
   onVoiceCommand
 }) => {
+  const { t } = useTranslation(userPreferences);
   const [voiceState, setVoiceState] = useState<VoiceState>({
     isListening: false,
     isProcessing: false,
@@ -28,6 +30,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   const [transcript, setTranscript] = useState('');
   const [lastResponse, setLastResponse] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const handleVoiceInteraction = useCallback(async () => {
     if (!voiceService.isSupported()) {
@@ -86,17 +89,26 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     }
   }, [isActive, handleVoiceInteraction, userPreferences.language]);
 
+  // Mute logic: stop speaking and set muted state
+  const handleMute = () => {
+    voiceService.stopSpeaking();
+    setIsMuted(true);
+  };
+  const handleUnmute = () => {
+    setIsMuted(false);
+  };
+
   if (!isActive) return null;
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${isMinimized ? 'w-16' : 'w-80'}`}>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+    <div className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${isMinimized ? 'w-20 h-20' : 'w-[28rem] max-w-full'}`}>
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border-2 border-green-400">
         {isMinimized ? (
           // Minimized view
-          <div className="p-4">
+          <div className="p-4 flex flex-col items-center justify-center">
             <button
               onClick={() => setIsMinimized(false)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                 voiceState.isListening 
                   ? 'bg-green-500 animate-pulse' 
                   : voiceState.isProcessing 
@@ -106,34 +118,36 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       : 'bg-gray-300 dark:bg-gray-600'
               }`}
             >
-              <Mic size={16} className="text-white" />
+              <Mic size={28} className="text-white" />
             </button>
           </div>
         ) : (
           // Full view
-          <div className="p-6">
+          <div className="p-10">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Voice Assistant</h3>
-              <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{t('voice_assistant')}</h3>
+              <div className="flex items-center space-x-3">
                 <button
                   onClick={() => setIsMinimized(true)}
                   className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  title="Hide"
                 >
-                  <VolumeX size={16} />
+                  <EyeOff size={22} />
                 </button>
                 <button
                   onClick={() => onToggle(false)}
-                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="text-gray-400 dark:text-gray-500 hover:text-red-600 transition-colors"
+                  title="Close"
                 >
-                  <MicOff size={16} />
+                  <X size={22} />
                 </button>
               </div>
             </div>
 
             {/* Voice Visualization */}
             <div className="flex items-center justify-center mb-4">
-              <div className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${
+              <div className={`relative w-40 h-40 rounded-full flex items-center justify-center transition-all duration-300 ${
                 voiceState.isListening 
                   ? 'bg-green-500 animate-pulse' 
                   : voiceState.isProcessing 
@@ -142,7 +156,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       ? 'bg-purple-500 animate-bounce' 
                       : 'bg-gray-300 dark:bg-gray-600'
               }`}>
-                <Mic size={32} className="text-white" />
+                <Mic size={64} className="text-white" />
                 
                 {/* Ripple effect for listening */}
                 {voiceState.isListening && (
@@ -162,10 +176,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
             {/* Status */}
             <div className="text-center mb-4">
               <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                {voiceState.isListening && '🎤 Listening...'}
-                {voiceState.isProcessing && '🧠 Processing...'}
-                {voiceState.isSpeaking && '🔊 Speaking...'}
-                {!voiceState.isListening && !voiceState.isProcessing && !voiceState.isSpeaking && '✨ Ready to help'}
+                {voiceState.isListening && `🎤 ${t('listening')}`}
+                {voiceState.isProcessing && `🧠 ${t('processing')}`}
+                {voiceState.isSpeaking && `🔊 ${t('speaking')}`}
+                {!voiceState.isListening && !voiceState.isProcessing && !voiceState.isSpeaking && `✨ ${t('ready_to_help')}`}
               </p>
             </div>
 
@@ -196,24 +210,28 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
             <div className="flex justify-center space-x-3">
               <button
                 onClick={() => onToggle(false)}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center space-x-2 text-sm"
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 text-base font-semibold"
               >
-                <MicOff size={14} />
-                <span>Stop</span>
+                <MicOff size={18} />
+                <span>{t('stop')}</span>
               </button>
-              
-              <button 
-                onClick={() => voiceService.stopSpeaking()}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center space-x-2 text-sm"
-              >
-                <VolumeX size={14} />
-                <span>Mute</span>
-              </button>
-
-              <button className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl transition-colors flex items-center space-x-2 text-sm">
-                <Settings size={14} />
-                <span>Settings</span>
-              </button>
+              {isMuted ? (
+                <button
+                  onClick={handleUnmute}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 text-base font-semibold"
+                >
+                  <VolumeX size={18} />
+                  <span>{t('unmute')}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleMute}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 text-base font-semibold"
+                >
+                  <Volume2 size={18} />
+                  <span>{t('mute')}</span>
+                </button>
+              )}
             </div>
           </div>
         )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Cloud, Sun, CloudRain, Wind, Thermometer, Droplets, MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
 import { UserPreferences, WeatherData } from '../types';
 import { weatherService } from '../services/weatherService';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface WeatherAdviceProps {
   userPreferences: UserPreferences;
@@ -10,6 +11,7 @@ interface WeatherAdviceProps {
 }
 
 export const WeatherAdvice: React.FC<WeatherAdviceProps> = ({ userPreferences, isDarkMode, onPreferencesChange }) => {
+  const { t } = useTranslation(userPreferences);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +97,31 @@ export const WeatherAdvice: React.FC<WeatherAdviceProps> = ({ userPreferences, i
     fetchWeatherData();
   };
 
+  // Helper to get next 5 day names starting from today
+  const getNextFiveDays = () => {
+    const days = [];
+    const today = new Date();
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      days.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+    }
+    return days;
+  };
+
+  // Build robust forecast array (always 5 days, fill missing)
+  let robustForecast: { day: string; temp: number; condition: string }[] = [];
+  if (weatherData) {
+    const forecastDays = getNextFiveDays();
+    const forecastMap = (weatherData.forecast || []).reduce((acc, f) => {
+      acc[f.day] = f;
+      return acc;
+    }, {} as Record<string, { day: string; temp: number; condition: string }>);
+    robustForecast = forecastDays.map((day, idx) =>
+      forecastMap[day] || { day, temp: NaN, condition: 'No data' }
+    );
+  }
+
   if (loading) {
     return (
       <div className="h-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -133,21 +160,21 @@ export const WeatherAdvice: React.FC<WeatherAdviceProps> = ({ userPreferences, i
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">Weather-Based Advice</h1>
-            <p className="text-gray-600 dark:text-gray-400">Get farming recommendations based on local weather conditions</p>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">{t('weather_advice')}</h1>
+            <p className="text-gray-600 dark:text-gray-400">{t('farming_tips')}</p>
             <form onSubmit={handleRegionSubmit} className="mt-4 flex items-center space-x-2">
               <input
                 type="text"
                 value={regionInput}
                 onChange={handleRegionChange}
-                placeholder="Enter city or region..."
+                placeholder={t('your_region')}
                 className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <button
                 type="submit"
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                Set Region
+                {t('set_region')}
               </button>
             </form>
           </div>
@@ -156,7 +183,7 @@ export const WeatherAdvice: React.FC<WeatherAdviceProps> = ({ userPreferences, i
             className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl transition-colors flex items-center space-x-2"
           >
             <RefreshCw size={16} />
-            <span>Refresh</span>
+            <span>{t('refresh')}</span>
           </button>
         </div>
 
@@ -222,7 +249,7 @@ export const WeatherAdvice: React.FC<WeatherAdviceProps> = ({ userPreferences, i
 
             {/* Farming Advice */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Today's Farming Advice</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{t('farming_tips')}</h3>
               <div className="space-y-3">
                 {weatherData.advice.map((advice, index) => (
                   <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
@@ -236,10 +263,10 @@ export const WeatherAdvice: React.FC<WeatherAdviceProps> = ({ userPreferences, i
 
           {/* 5-Day Forecast */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">5-Day Forecast</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">{t('forecast_5day')}</h2>
             <div className="space-y-3">
-              {weatherData.forecast.map((day, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+              {robustForecast.map((day, index) => (
+                <div key={index} className={`flex items-center justify-between p-3 rounded-lg transition-colors ${day.condition === 'No data' ? 'bg-gray-100 dark:bg-gray-800/50 text-gray-400' : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'}`}>
                   <div className="flex items-center space-x-3">
                     {getWeatherIcon(day.condition)}
                     <div>
@@ -247,7 +274,7 @@ export const WeatherAdvice: React.FC<WeatherAdviceProps> = ({ userPreferences, i
                       <p className="text-sm text-gray-600 dark:text-gray-400">{day.condition}</p>
                     </div>
                   </div>
-                  <p className={`text-lg font-bold ${getTemperatureColor(day.temp)}`}>{day.temp}°</p>
+                  <p className={`text-lg font-bold ${isNaN(day.temp) ? 'text-gray-400' : getTemperatureColor(day.temp)}`}>{isNaN(day.temp) ? '--' : `${day.temp}°`}</p>
                 </div>
               ))}
             </div>

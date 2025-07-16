@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Camera, Upload, Zap, Leaf, AlertCircle, CheckCircle, X, RotateCcw } from 'lucide-react';
 import { UserPreferences, PlantIdentification } from '../types';
 import { plantService } from '../services/plantService';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface PlantIdentifierProps {
   userPreferences: UserPreferences;
@@ -9,6 +10,7 @@ interface PlantIdentifierProps {
 }
 
 export const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ userPreferences, isDarkMode }) => {
+  const { t } = useTranslation(userPreferences);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<PlantIdentification | null>(null);
@@ -140,14 +142,14 @@ export const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ userPreference
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">Plant Identification</h1>
-          <p className="text-gray-600 dark:text-gray-400">Upload a photo or use your camera to identify plants and get health recommendations</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">{t('plant_id')}</h1>
+          <p className="text-gray-600 dark:text-gray-400">{t('farming_tips')}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Upload/Camera Section */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Capture Plant Image</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">{t('plant_id')}</h2>
             
             {showCamera ? (
               /* Camera Interface */

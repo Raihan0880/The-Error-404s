@@ -9,6 +9,7 @@ import { WeatherAdvice } from './components/WeatherAdvice';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { UserPreferences } from './types';
+import { SupportedLang } from './i18n';
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -29,6 +30,15 @@ function App() {
       setUserPreferences(JSON.parse(saved));
     }
   }, []);
+
+  useEffect(() => {
+    const rtlLangs: SupportedLang[] = ['ur'];
+    if (rtlLangs.includes(userPreferences.language as SupportedLang)) {
+      document.body.setAttribute('dir', 'rtl');
+    } else {
+      document.body.setAttribute('dir', 'ltr');
+    }
+  }, [userPreferences.language]);
 
   const updatePreferences = (updates: Partial<UserPreferences>) => {
     const newPrefs = { ...userPreferences, ...updates };
