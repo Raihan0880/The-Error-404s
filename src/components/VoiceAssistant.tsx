@@ -40,7 +40,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
     try {
       setVoiceState(prev => ({ ...prev, isListening: true }));
-      setTranscript('Listening...');
+      setTranscript(t('listening'));
+      
+      // Set language for voice recognition
+      voiceService.setLanguage(userPreferences.language);
       
       const userSpeech = await voiceService.startListening();
       setTranscript(`You said: "${userSpeech}"`);
@@ -58,7 +61,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         onVoiceCommand(userSpeech, aiResponse);
       }
       
-      await voiceService.speak(aiResponse);
+      // Speak response if not muted
+      if (!isMuted) {
+        await voiceService.speak(aiResponse, userPreferences.language);
+      }
       
       setVoiceState(prev => ({ ...prev, isSpeaking: false }));
       
@@ -74,12 +80,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       setVoiceState({ isListening: false, isProcessing: false, isSpeaking: false });
       setTranscript('Voice interaction failed. Please try again.');
     }
-  }, [isActive, userPreferences, onVoiceCommand]);
+  }, [isActive, userPreferences, onVoiceCommand, isMuted, t]);
 
   useEffect(() => {
     if (isActive) {
-      // Set language based on user preferences
-      voiceService.setLanguage(userPreferences.language === 'es' ? 'es-ES' : 'en-US');
       handleVoiceInteraction();
     } else {
       setVoiceState({ isListening: false, isProcessing: false, isSpeaking: false });
@@ -87,13 +91,14 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       voiceService.stopListening();
       voiceService.stopSpeaking();
     }
-  }, [isActive, handleVoiceInteraction, userPreferences.language]);
+  }, [isActive, handleVoiceInteraction]);
 
   // Mute logic: stop speaking and set muted state
   const handleMute = () => {
     voiceService.stopSpeaking();
     setIsMuted(true);
   };
+  
   const handleUnmute = () => {
     setIsMuted(false);
   };
@@ -101,7 +106,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   if (!isActive) return null;
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${isMinimized ? 'w-20 h-20' : 'w-[28rem] max-w-full'}`}>
+    <div className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${isMinimized ? 'w-20 h-20' : 'w-80 sm:w-96'}`}>
       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border-2 border-green-400">
         {isMinimized ? (
           // Minimized view
@@ -123,31 +128,31 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           </div>
         ) : (
           // Full view
-          <div className="p-10">
+          <div className="p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{t('voice_assistant')}</h3>
-              <div className="flex items-center space-x-3">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{t('voice_assistant')}</h3>
+              <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setIsMinimized(true)}
                   className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  title="Hide"
+                  title={t('hide')}
                 >
-                  <EyeOff size={22} />
+                  <EyeOff size={20} />
                 </button>
                 <button
                   onClick={() => onToggle(false)}
                   className="text-gray-400 dark:text-gray-500 hover:text-red-600 transition-colors"
-                  title="Close"
+                  title={t('close')}
                 >
-                  <X size={22} />
+                  <X size={20} />
                 </button>
               </div>
             </div>
 
             {/* Voice Visualization */}
             <div className="flex items-center justify-center mb-4">
-              <div className={`relative w-40 h-40 rounded-full flex items-center justify-center transition-all duration-300 ${
+              <div className={`relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
                 voiceState.isListening 
                   ? 'bg-green-500 animate-pulse' 
                   : voiceState.isProcessing 
@@ -156,7 +161,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       ? 'bg-purple-500 animate-bounce' 
                       : 'bg-gray-300 dark:bg-gray-600'
               }`}>
-                <Mic size={64} className="text-white" />
+                <Mic size={48} className="text-white" />
                 
                 {/* Ripple effect for listening */}
                 {voiceState.isListening && (
@@ -185,7 +190,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
             {/* Transcript */}
             {transcript && (
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-3 mb-4 max-h-32 overflow-y-auto">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-3 mb-4 max-h-24 overflow-y-auto">
                 <p className="text-sm text-gray-700 dark:text-gray-300">{transcript}</p>
               </div>
             )}
@@ -194,41 +199,42 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
             <div className="mb-4">
               <details className="group">
                 <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-                  Voice Commands
+                  Voice Commands ({userPreferences.language.toUpperCase()})
                 </summary>
                 <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-1">
                   <p>• "What's the weather like?"</p>
                   <p>• "How do I water tomatoes?"</p>
                   <p>• "Identify this plant"</p>
                   <p>• "Show me the dashboard"</p>
+                  <p>• "Open AI assistant"</p>
                   <p>• "Stop listening"</p>
                 </div>
               </details>
             </div>
 
             {/* Controls */}
-            <div className="flex justify-center space-x-3">
+            <div className="flex justify-center space-x-2">
               <button
                 onClick={() => onToggle(false)}
-                className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 text-base font-semibold"
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center space-x-2 text-sm font-semibold"
               >
-                <MicOff size={18} />
+                <MicOff size={16} />
                 <span>{t('stop')}</span>
               </button>
               {isMuted ? (
                 <button
                   onClick={handleUnmute}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 text-base font-semibold"
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center space-x-2 text-sm font-semibold"
                 >
-                  <VolumeX size={18} />
+                  <VolumeX size={16} />
                   <span>{t('unmute')}</span>
                 </button>
               ) : (
                 <button
                   onClick={handleMute}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl transition-colors flex items-center space-x-2 text-base font-semibold"
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center space-x-2 text-sm font-semibold"
                 >
-                  <Volume2 size={18} />
+                  <Volume2 size={16} />
                   <span>{t('mute')}</span>
                 </button>
               )}
